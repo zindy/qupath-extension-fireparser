@@ -1,14 +1,16 @@
-package qupath.ext.template;
+package qupath.ext.fireparser;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.Property;
 import javafx.scene.Scene;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qupath.ext.template.ui.InterfaceController;
+import qupath.ext.fireparser.ui.PatternController;
+import qupath.ext.fireparser.ui.PrefixController;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.prefs.controlsfx.PropertyItemBuilder;
 import qupath.lib.common.Version;
@@ -21,42 +23,29 @@ import java.util.ResourceBundle;
 
 
 /**
- * This is a demo to provide a template for creating a new QuPath extension.
- * <p>
- * It doesn't do much - it just shows how to add a menu item and a preference.
- * See the code and comments below for more info.
- * <p>
- * <b>Important!</b> For your extension to work in QuPath, you need to make sure the name &amp; package
- * of this class is consistent with the file
- * <pre>
- *     /resources/META-INF/services/qupath.lib.gui.extensions.QuPathExtension
- * </pre>
+ * This extension adds filename / folder parsing capability
  */
-public class DemoExtension implements QuPathExtension {
-	// TODO: add and modify strings to this resource bundle as needed
+public class FireParserExtension implements QuPathExtension {
 	/**
 	 * A resource bundle containing all the text used by the extension. This may be useful for translation to other languages.
 	 * Note that this is optional and you can define the text within the code and FXML files that you use.
 	 */
-	private static final ResourceBundle resources = ResourceBundle.getBundle("qupath.ext.template.ui.strings");
-	private static final Logger logger = LoggerFactory.getLogger(DemoExtension.class);
+	private static final ResourceBundle resources = ResourceBundle.getBundle("qupath.ext.fireparser.ui.strings");
+	private static final Logger logger = LoggerFactory.getLogger(FireParserExtension.class);
 
 	/**
 	 * Display name for your extension
-	 * TODO: define this
 	 */
 	private static final String EXTENSION_NAME = resources.getString("name");
 
 	/**
 	 * Short description, used under 'Extensions > Installed extensions'
-	 * TODO: define this
 	 */
 	private static final String EXTENSION_DESCRIPTION = resources.getString("description");
 
 	/**
 	 * QuPath version that the extension is designed to work with.
 	 * This allows QuPath to inform the user if it seems to be incompatible.
-	 * TODO: define this
 	 */
 	private static final Version EXTENSION_QUPATH_VERSION = Version.parse("v0.5.0");
 
@@ -90,9 +79,10 @@ public class DemoExtension implements QuPathExtension {
 	}
 
 	/**
-	 * Create a stage for the extension to display
+	 * Create stages for the extension to display
 	 */
-	private Stage stage;
+	private Stage patternStage;
+	private Stage prefixStage;
 
 	@Override
 	public void installExtension(QuPathGUI qupath) {
@@ -102,20 +92,20 @@ public class DemoExtension implements QuPathExtension {
 		}
 		isInstalled = true;
 		addPreferenceToPane(qupath);
-		addMenuItem(qupath);
+		addMenuItems(qupath);
 	}
 
 	/**
-	 * Demo showing how to add a persistent preference to the QuPath preferences pane.
+	 * FireParser preferences
 	 * The preference will be in a section of the preference pane based on the
 	 * category you set. The description is used as a tooltip.
 	 * @param qupath The currently running QuPathGUI instance.
 	 */
 	private void addPreferenceToPane(QuPathGUI qupath) {
         var propertyItem = new PropertyItemBuilder<>(enableExtensionProperty, Boolean.class)
-				.name(resources.getString("menu.enable"))
-				.category("Demo extension")
-				.description("Enable the demo extension")
+				.name(resources.getString("menu.enableCellProfilerCompat"))
+				.category("FireParser extension")
+				.description("Make the Regex Parser compatible with CellProfiler patterns")
 				.build();
 		qupath.getPreferencePane()
 				.getPropertySheet()
@@ -125,35 +115,71 @@ public class DemoExtension implements QuPathExtension {
 
 
 	/**
-	 * Demo showing how a new command can be added to a QuPath menu.
+	 * FireParser showing how new commands can be added to a QuPath menu.
 	 * @param qupath The QuPath GUI
 	 */
-	private void addMenuItem(QuPathGUI qupath) {
-		var menu = qupath.getMenu("Extensions>" + EXTENSION_NAME, true);
-		MenuItem menuItem = new MenuItem("My menu item");
-		menuItem.setOnAction(e -> createStage());
-		menuItem.disableProperty().bind(enableExtensionProperty.not());
-		menu.getItems().add(menuItem);
+	private void addMenuItems(QuPathGUI qupath) {
+		Menu menu = qupath.getMenu("Extensions>" + EXTENSION_NAME, true);
+		
+		// Prefix manager menu item
+		MenuItem prefixMenuItem = new MenuItem(resources.getString("menu.prefix.manager"));
+		prefixMenuItem.setOnAction(e -> createPrefixStage(qupath));
+		prefixMenuItem.disableProperty().bind(enableExtensionProperty.not());
+		
+		// Pattern tester menu item
+		MenuItem patternMenuItem = new MenuItem(resources.getString("menu.pattern.tester"));
+		patternMenuItem.setOnAction(e -> createPatternStage(qupath));
+		patternMenuItem.disableProperty().bind(enableExtensionProperty.not());
+		
+		menu.getItems().addAll(prefixMenuItem, patternMenuItem);
 	}
 
 	/**
-	 * Demo showing how to create a new stage with a JavaFX FXML interface.
+	 * FireParser showing how to create a new stage with a JavaFX FXML interface.
 	 */
-	private void createStage() {
-		if (stage == null) {
+	private void createPatternStage(QuPathGUI qupath) {
+		if (patternStage == null) {
 			try {
-				stage = new Stage();
-				Scene scene = new Scene(InterfaceController.createInstance());
-				stage.initOwner(QuPathGUI.getInstance().getStage());
-				stage.setTitle(resources.getString("stage.title"));
-				stage.setScene(scene);
-				stage.setResizable(false);
+				patternStage = new Stage();
+				patternStage.setTitle(resources.getString("stage.pattern.title"));
+
+				PatternController controller = PatternController.createInstance(qupath);
+				Scene scene = new Scene(controller, 700, 850);
+
+				patternStage.setScene(scene);
+				patternStage.setResizable(true);
+				patternStage.show();
 			} catch (IOException e) {
 				Dialogs.showErrorMessage(resources.getString("error"), resources.getString("error.gui-loading-failed"));
-				logger.error("Unable to load extension interface FXML", e);
+				logger.error("Unable to load pattern tester interface FXML", e);
 			}
 		}
-		stage.show();
+		patternStage.show();
+	}
+	
+	/**
+	 * Create the prefix manager stage
+	 */
+	private void createPrefixStage(QuPathGUI qupath) {
+		try {
+			// Create new stage each time (don't reuse to ensure fresh data)
+			prefixStage = new Stage();
+			prefixStage.setTitle(resources.getString("stage.prefix.title"));
+			
+			PrefixController controller = PrefixController.createInstance(qupath);
+			Scene scene = new Scene(controller, 500, 300);
+			
+			prefixStage.setScene(scene);
+			//prefixStage.setResizable(false);
+			prefixStage.sizeToScene();
+			prefixStage.show();
+		} catch (IllegalStateException e) {
+			Dialogs.showErrorMessage(resources.getString("error"), e.getMessage());
+			logger.error("Cannot open prefix manager", e);
+		} catch (IOException e) {
+			Dialogs.showErrorMessage(resources.getString("error"), resources.getString("error.gui-loading-failed"));
+			logger.error("Unable to load prefix manager interface FXML", e);
+		}
 	}
 
 

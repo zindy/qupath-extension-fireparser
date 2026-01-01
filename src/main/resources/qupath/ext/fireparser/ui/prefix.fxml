@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<fx:root type="BorderPane" xmlns="http://javafx.com/javafx/20" xmlns:fx="http://javafx.com/fxml/1">
+    <center>
+        <VBox spacing="20">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+            
+            <Label text="Add Folder Prefix to Image Names" 
+                   style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+            
+            <Separator/>
+            
+            <VBox spacing="10">
+                <Label text="%prefix.sublevel.label" style="-fx-font-weight: bold;"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Spinner fx:id="sublevelSpinner" prefWidth="100" editable="true"/>
+                    <Label text="%prefix.sublevel.description" wrapText="true" 
+                           HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <Label text="%prefix.note" wrapText="true" 
+                       style="-fx-font-size: 11px; -fx-text-fill: #666666;"
+                       maxWidth="Infinity"/>
+            </VBox>
+            
+            <Separator/>
+            
+            <Label fx:id="infoLabel" text="Info" 
+                   style="-fx-font-size: 12px; -fx-text-fill: #333333;"/>
+            
+            <Region VBox.vgrow="ALWAYS"/>
+            
+            <Separator/>
+            
+            <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Button fx:id="cancelButton" text="%button.cancel" 
+                       cancelButton="true"
+                       style="-fx-min-width: 80px;"/>
+                <Button fx:id="applyButton" text="%button.apply" 
+                       defaultButton="true"
+                       style="-fx-min-width: 80px;"/>
+            </HBox>
+        </VBox>
+    </center>
+</fx:root>
